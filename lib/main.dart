@@ -1,9 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/location.dart';
+
+import 'package:flutter_map/web_socket.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'package:web_socket_channel/io.dart';
 
 const double CAMERA_ZOOM = 18;
 const double CAMERA_TILT = 0;
@@ -24,8 +31,11 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  final WebSocketChannel channel =
+      IOWebSocketChannel.connect('ws://echo.websocket.org');
+
   @override
-  _HomePageState createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState(channel: channel);
 }
 
 class _HomePageState extends State<HomePage> {
@@ -68,6 +78,47 @@ class _HomePageState extends State<HomePage> {
     setSourceAndDestinationIcons();
     // set the initial location
     setInitialLocation();
+
+    // locationList.forEach((element) {
+    //   // element.lat;
+    //   // element.lon;
+    //   channel.sink.add("${element.lat}, ${element.lon}");
+    //   sleep(Duration(seconds: 2));
+    // });
+  }
+
+  @override
+  void didChangeDependencies() {
+    sendLocation();
+    super.didChangeDependencies();
+  }
+
+  final WebSocketChannel channel;
+  final inputController = TextEditingController();
+  List<String> messageList = [];
+  String lat;
+  String lon;
+
+  _HomePageState({this.channel}) {
+    channel.stream.listen((data) {
+      setState(() {
+        final split = data.split(',');
+        final Map<int, String> values = {
+          for (int i = 0; i < split.length; i++) i: split[i]
+        };
+        lat = values[0];
+        lon = values[1];
+        print('response server data---------- $lat, $lon');
+        messageList.add(data);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    inputController.dispose();
+    widget.channel.sink.close();
+    super.dispose();
   }
 
   @override
@@ -89,20 +140,71 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          GoogleMap(
-              myLocationEnabled: true,
-              compassEnabled: true,
-              tiltGesturesEnabled: false,
-              markers: _markers,
-              polylines: _polylines,
-              mapType: MapType.normal,
-              initialCameraPosition: initialCameraPosition,
-              onMapCreated: (controller) {
-                _controller.complete(controller);
-                showPinsOnMap();
-              })
+      appBar: AppBar(
+        title: Text('Google Map'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.arrow_forward),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => WebSocketPage(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          Container(
+            height: 200,
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: inputController,
+                    decoration: InputDecoration(
+                      labelText: 'Send Message',
+                      border: OutlineInputBorder(),
+                    ),
+                    style: TextStyle(fontSize: 22),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: RaisedButton(
+                    child: Text(
+                      'Send',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                    onPressed: () {
+                      if (inputController.text.isNotEmpty) {
+                        print(inputController.text);
+                        channel.sink.add(inputController.text);
+                      }
+                      inputController.text = '';
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            height: 400,
+            child: GoogleMap(
+                myLocationEnabled: true,
+                compassEnabled: true,
+                tiltGesturesEnabled: false,
+                markers: _markers,
+                polylines: _polylines,
+                mapType: MapType.normal,
+                initialCameraPosition: initialCameraPosition,
+                onMapCreated: (controller) {
+                  _controller.complete(controller);
+                  showPinsOnMap();
+                }),
+          ),
         ],
       ),
     );
@@ -127,8 +229,10 @@ class _HomePageState extends State<HomePage> {
 
     // hard-coded destination for this example
     destinationLocation = LocationData.fromMap({
-      "latitude": DEST_LOCATION.latitude,
-      "longitude": DEST_LOCATION.longitude
+      "latitude": double.parse(lat),
+      "longitude": double.parse(lon),
+      // "latitude": DEST_LOCATION.latitude,
+      // "longitude": DEST_LOCATION.longitude
     });
   }
 
@@ -193,7 +297,10 @@ class _HomePageState extends State<HomePage> {
       zoom: CAMERA_ZOOM,
       tilt: CAMERA_TILT,
       bearing: CAMERA_BEARING,
-      target: LatLng(currentLocation.latitude, currentLocation.longitude),
+      target: LatLng(
+        double.parse(lat),
+        double.parse(lon),
+      ),
     );
     final GoogleMapController controller = await _controller.future;
     controller.animateCamera(CameraUpdate.newCameraPosition(cPosition));
@@ -202,8 +309,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       // updated position
       var pinPosition = LatLng(
-        currentLocation.latitude,
-        currentLocation.longitude,
+        // currentLocation.latitude,
+        // currentLocation.longitude,
+        double.parse(lat), double.parse(lon),
       );
 
       // the trick is to remove the marker (by id)
@@ -217,5 +325,13 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     });
+  }
+
+  void sendLocation() async {
+    // await Future.delayed(Duration(milliseconds: 700));
+    for (var i = 0; i < locationList.length; i++) {
+      channel.sink.add("${locationList[i].lat}, ${locationList[i].lon}");
+      await Future.delayed(Duration(milliseconds: 900));
+    }
   }
 }
