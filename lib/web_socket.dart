@@ -1,138 +1,138 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_map/location.dart';
-import 'package:flutter_map/main.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+// import 'package:web_socket_channel/io.dart';
+// import 'package:web_socket_channel/web_socket_channel.dart';
 
-class WebSocketPage extends StatefulWidget {
-  final WebSocketChannel channel =
-      IOWebSocketChannel.connect('ws://echo.websocket.org');
+// import 'location.dart';
 
-  @override
-  _WebSocketPageState createState() => _WebSocketPageState(channel: channel);
-}
+// class WebSocketPage extends StatefulWidget {
+//   final WebSocketChannel channel =
+//       IOWebSocketChannel.connect('ws://echo.websocket.org');
 
-class _WebSocketPageState extends State<WebSocketPage> {
-  final WebSocketChannel channel;
-  final inputController = TextEditingController();
-  List<String> messageList = [];
+//   @override
+//   _WebSocketPageState createState() => _WebSocketPageState(channel: channel);
+// }
 
-  _WebSocketPageState({this.channel}) {
-    channel.stream.listen((data) {
-      setState(() {
-        print('response server data---------- $data');
-        messageList.add(data);
-      });
-    });
-  }
+// class _WebSocketPageState extends State<WebSocketPage> {
+//   final WebSocketChannel channel;
+//   final inputController = TextEditingController();
+//   List<String> messageList = [];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Web Socket'),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.all(10.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: inputController,
-                    decoration: InputDecoration(
-                      labelText: 'Send Message',
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(fontSize: 22),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: RaisedButton(
-                    child: Text(
-                      'Send',
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    onPressed: () {
-                      if (inputController.text.isNotEmpty) {
-                        print(inputController.text);
-                        channel.sink.add(inputController.text);
-                      }
-                      inputController.text = '';
+//   _WebSocketPageState({this.channel}) {
+//     channel.stream.listen((data) {
+//       setState(() {
+//         print('response server data---------- $data');
+//         messageList.add(data);
+//       });
+//     });
+//   }
 
-                      // fetchLocation().then((value) => print(
-                      //     "Latitude: ${LocationModel(lat: value[0].lat, lon: value[0].lon)}"));
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Web Socket'),
+//       ),
+//       body: Column(
+//         children: <Widget>[
+//           Padding(
+//             padding: EdgeInsets.all(10.0),
+//             child: Row(
+//               children: <Widget>[
+//                 Expanded(
+//                   child: TextField(
+//                     controller: inputController,
+//                     decoration: InputDecoration(
+//                       labelText: 'Send Message',
+//                       border: OutlineInputBorder(),
+//                     ),
+//                     style: TextStyle(fontSize: 22),
+//                   ),
+//                 ),
+//                 Padding(
+//                   padding: const EdgeInsets.all(8.0),
+//                   child: RaisedButton(
+//                     child: Text(
+//                       'Send',
+//                       style: TextStyle(fontSize: 20),
+//                     ),
+//                     onPressed: () {
+//                       if (inputController.text.isNotEmpty) {
+//                         print(inputController.text);
+//                         channel.sink.add(inputController.text);
+//                       }
+//                       inputController.text = '';
 
-                      // final locationData = fetchLocation().then((value) =>
-                      //     LocationModel(lat: value[0].lat, lon: value[0].lon));
+//                       // fetchLocation().then((value) => print(
+//                       //     "Latitude: ${LocationModel(lat: value[0].lat, lon: value[0].lon)}"));
 
-                      // Navigator.of(context).pushReplacement(MaterialPageRoute(
-                      //     builder: (context) => HomePage(
-                      //           locationModel: LocationModel(
-                      //             lat: "23.73009",
-                      //             lon: "90.41075",
-                      //           ),
-                      //         )));
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: getMessageList(),
-          ),
-//          Expanded(
-//            child: StreamBuilder(
-//              stream: channel.stream,
-//              builder: (context, snapshot) {
-//                if (snapshot.hasData) {
-//                  messageList.add(snapshot.data);
-//                }
-//
-//                return getMessageList();
-//              },
-//            ),
-//          ),
-        ],
-      ),
-    );
-  }
+//                       // final locationData = fetchLocation().then((value) =>
+//                       //     LocationModel(lat: value[0].lat, lon: value[0].lon));
 
-  ListView getMessageList() {
-    List<Widget> listWidget = [];
+//                       // Navigator.of(context).pushReplacement(MaterialPageRoute(
+//                       //     builder: (context) => HomePage(
+//                       //           locationModel: LocationModel(
+//                       //             lat: "23.73009",
+//                       //             lon: "90.41075",
+//                       //           ),
+//                       //         )));
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           Expanded(
+//             child: getMessageList(),
+//           ),
+// //          Expanded(
+// //            child: StreamBuilder(
+// //              stream: channel.stream,
+// //              builder: (context, snapshot) {
+// //                if (snapshot.hasData) {
+// //                  messageList.add(snapshot.data);
+// //                }
+// //
+// //                return getMessageList();
+// //              },
+// //            ),
+// //          ),
+//         ],
+//       ),
+//     );
+//   }
 
-    for (String message in messageList) {
-      listWidget.add(ListTile(
-        title: Container(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              message,
-              style: TextStyle(fontSize: 22),
-            ),
-          ),
-          color: Colors.teal[50],
-          height: 60,
-        ),
-      ));
-    }
+//   ListView getMessageList() {
+//     List<Widget> listWidget = [];
 
-    return ListView(children: listWidget);
-  }
+//     for (String message in messageList) {
+//       listWidget.add(ListTile(
+//         title: Container(
+//           child: Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Text(
+//               message,
+//               style: TextStyle(fontSize: 22),
+//             ),
+//           ),
+//           color: Colors.teal[50],
+//           height: 60,
+//         ),
+//       ));
+//     }
 
-  @override
-  void dispose() {
-    inputController.dispose();
-    widget.channel.sink.close();
-    super.dispose();
-  }
+//     return ListView(children: listWidget);
+//   }
 
-  Future<List<LocationModel>> fetchLocation() async {
-    final data = await rootBundle.loadString('assets/locations.json');
-    return locationModelFromMap(data);
-  }
-}
+//   @override
+//   void dispose() {
+//     inputController.dispose();
+//     widget.channel.sink.close();
+//     super.dispose();
+//   }
+
+//   Future<List<LocationModel>> fetchLocation() async {
+//     final data = await rootBundle.loadString('assets/locations.json');
+//     return locationModelFromMap(data);
+//   }
+// }
