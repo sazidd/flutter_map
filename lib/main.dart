@@ -10,8 +10,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 const double CAMERA_ZOOM = 18;
 const double CAMERA_TILT = 0;
 const double CAMERA_BEARING = 30;
-const LatLng SOURCE_LOCATION = LatLng(42.747932, -71.167889);
-const LatLng DEST_LOCATION = LatLng(37.335685, -122.0605916);
+const LatLng SOURCE_LOCATION = LatLng(23.7157254, 90.4251349);
+const LatLng DEST_LOCATION = LatLng(23.7155286, 90.4231064);
 const String _apiKey = "AIzaSyCqbqRJV54QBO3KoHyZGrRI25adiisl9vg";
 
 void main() => runApp(MyApp());
@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: HomePage(),
     );
   }
@@ -35,9 +36,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Completer<GoogleMapController> _controller = Completer();
-
-  // Map<MarkerId, Marker> markers = {};
-  // Map<PolylineId, Polyline> polylines = {};
 
   Set<Marker> _markers = Set<Marker>();
   // for my drawn routes on the map
@@ -71,14 +69,17 @@ class _HomePageState extends State<HomePage> {
       // current user's position in real time,
       // so we're holding on to it
       currentLocation = cLoc;
-      // channel.sink.add("${cLoc.latitude}, ${cLoc.longitude}");
-      // print('Lat-----${cLoc.latitude}, Lng-----${cLoc.longitude}');
+      channel.sink.add("${cLoc.latitude}, ${cLoc.longitude}");
+      print('Lat----- ${cLoc.latitude}, Lng----- ${cLoc.longitude}');
       updatePinOnMap();
     });
     // set custom marker pins
     setSourceAndDestinationIcons();
     // set the initial location
     setInitialLocation();
+    // channel.sink
+    //     .add("${currentLocation.latitude}, ${currentLocation.longitude}");
+    // print('Lat-----$lat, Lng-----$lng');
   }
 
   // @override
@@ -93,9 +94,6 @@ class _HomePageState extends State<HomePage> {
   // String lat;
   // String lon;
 
-  double lat;
-  double lng;
-
   _HomePageState({this.channel}) {
     channel.stream.listen((data) {
       setState(() {
@@ -103,8 +101,8 @@ class _HomePageState extends State<HomePage> {
         final Map<int, String> values = {
           for (int i = 0; i < split.length; i++) i: split[i]
         };
-        lat = double.parse(values[0]);
-        lng = double.parse(values[1]);
+        double lat = double.parse(values[0]);
+        double lng = double.parse(values[1]);
         print('Response Server Data---------- Lat: $lat, Lng: $lng');
         // currentLocation-----
         // messageList.add(data);
@@ -131,12 +129,10 @@ class _HomePageState extends State<HomePage> {
     if (currentLocation != null) {
       initialCameraPosition = CameraPosition(
         target: LatLng(
-          lat,
-          lng,
           // double.parse(lat),
           // double.parse(lng),
-          // currentLocation.latitude,
-          // currentLocation.longitude,
+          currentLocation.latitude,
+          currentLocation.longitude,
         ),
         zoom: CAMERA_ZOOM,
         tilt: CAMERA_TILT,
@@ -162,48 +158,50 @@ class _HomePageState extends State<HomePage> {
       ),
       body: ListView(
         children: [
-          Container(
-            height: 200,
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: inputController,
-                    decoration: InputDecoration(
-                      labelText: 'Send Message',
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(fontSize: 22),
-                  ),
-                ),
-                // Padding(
-                //   padding: const EdgeInsets.all(8.0),
-                //   child: RaisedButton(
-                //     child: Text(
-                //       'Send',
-                //       style: TextStyle(fontSize: 20),
-                //     ),
-                //     onPressed: () {
-                //       channel.sink.add("${cLoc.latitude}, ${cLoc.longitude}");
-                //       print(
-                //           'Lat-----${cLoc.latitude}, Lng-----${cLoc.longitude}');
-                //       // if (inputController.text.isNotEmpty) {
-                //       //   print(inputController.text);
-                //       //   channel.sink.add(inputController.text);
-                //       // }
-                //       // inputController.text = '';
-                //     },
-                //   ),
-                // ),
-              ],
-            ),
-          ),
+          // Container(
+          //   height: 100,
+          //   child: Row(
+          //     children: <Widget>[
+          //       Expanded(
+          //         child: TextField(
+          //           controller: inputController,
+          //           decoration: InputDecoration(
+          //             labelText: 'Send Message',
+          //             border: OutlineInputBorder(),
+          //           ),
+          //           style: TextStyle(fontSize: 22),
+          //         ),
+          //       ),
+          //       Padding(
+          //         padding: const EdgeInsets.all(8.0),
+          //         child: RaisedButton(
+          //           child: Text(
+          //             'Send',
+          //             style: TextStyle(fontSize: 20),
+          //           ),
+          //           onPressed: () {
+          //             channel.sink.add("$lat, $lng");
+          //             print('Lat-----$lat, Lng-----$lng');
+          //             // if (inputController.text.isNotEmpty) {
+          //             //   print(inputController.text);
+          //             //   channel.sink.add(inputController.text);
+          //             // }
+          //             // inputController.text = '';
+          //           },
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
+
           Container(
             height: 400,
             child: GoogleMap(
                 myLocationEnabled: true,
                 compassEnabled: true,
-                tiltGesturesEnabled: false,
+                tiltGesturesEnabled: true,
+                scrollGesturesEnabled: true,
+                zoomGesturesEnabled: true,
                 markers: _markers,
                 polylines: _polylines,
                 mapType: MapType.normal,
@@ -284,36 +282,38 @@ class _HomePageState extends State<HomePage> {
     setPolylines();
   }
 
-  void setPolylines() async {
+  setPolylines() async {
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       _apiKey,
       PointLatLng(
         // double.parse(lat),
         // double.parse(lon),
-        lat,
-        lng,
+        currentLocation.latitude,
+        currentLocation.longitude,
       ),
       PointLatLng(
         destinationLocation.latitude,
         destinationLocation.longitude,
       ),
     );
+    print('Result------- ${result.points}');
 
-    if (result.points.isNotEmpty) {
-      result.points.forEach((PointLatLng point) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
+    // if (result.points != null) {
+    result.points.forEach((PointLatLng point) {
+      polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      print('Result Points------- ${result.points}');
+    });
 
-      setState(() {
-        _polylines.add(Polyline(
-          width: 2, // set the width of the polylines
-          polylineId: PolylineId("poly"),
-          color: Colors.red,
-          // Color.fromARGB(255, 40, 122, 198),
-          points: polylineCoordinates,
-        ));
-      });
-    }
+    setState(() {
+      _polylines.add(Polyline(
+        width: 2, // set the width of the polylines
+        polylineId: PolylineId("poly"),
+        // color: Color.fromARGB(255, 40, 122, 198),
+        color: Colors.redAccent,
+        points: polylineCoordinates,
+      ));
+    });
+    // }
   }
 
   void updatePinOnMap() async {
@@ -325,8 +325,8 @@ class _HomePageState extends State<HomePage> {
       tilt: CAMERA_TILT,
       bearing: CAMERA_BEARING,
       target: LatLng(
-        lat,
-        lng,
+        currentLocation.latitude,
+        currentLocation.longitude,
       ),
     );
     final GoogleMapController controller = await _controller.future;
@@ -336,8 +336,8 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       // updated position
       var pinPosition = LatLng(
-        lat,
-        lng,
+        currentLocation.latitude,
+        currentLocation.longitude,
         // double.parse(lat),
         // double.parse(lng),
       );
@@ -355,14 +355,14 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void sendLocation() {
-    // channel.sink.add("$lat, $lng");
+  // void sendLocation() async{
+  //   channel.sink.add("$lat, $lng");
 
-    // for (var i = 0; i < locationList.length; i++) {
-    //   // channel.sink.add("${locationList[i].lat}, ${locationList[i].lon}");
-    //   channel.sink.add("${currentLocation.lat}, ${l.lon}");
+  //   for (var i = 0; i < locationList.length; i++) {
+  //     // channel.sink.add("${locationList[i].lat}, ${locationList[i].lon}");
+  //     channel.sink.add("${currentLocation.lat}, ${l.lon}");
 
-    //   await Future.delayed(Duration(seconds: 2));
-    // }
-  }
+  //     await Future.delayed(Duration(seconds: 2));
+  //   }
+  // }
 }
